@@ -93,7 +93,39 @@ function form(element: HTMLFormElement) {
     },
 
     validate(){
-      
+      element.addEventListener('submit', (event) => {
+        event.preventDefault()
+        inputs.forEach((input) => {
+          const atributeAria = input.getAttribute('aria-describedby')
+          if (!atributeAria) {
+            throw new Error('Отсутствует поле ввода с атрибутом aria-describedby')
+          } 
+          const output = element.querySelector(`#${atributeAria}`)
+          if (!output) {
+            throw new Error('Нет output')
+          }
+          const validity = input.validity
+          if (!validity.valid) {
+            if (validity.rangeOverflow) {
+              output.textContent = mesError.get(input.name)!['min'] ? mesError.get(input.name)!['min'] : input.validationMessage
+              return
+            }
+            if (validity.rangeUnderflow) {
+              output.textContent = mesError.get(input.name)!['max'] ? mesError.get(input.name)!['min'] : input.validationMessage
+              return
+            }
+            if (validity.tooLong) {
+              output.textContent = mesError.get(input.name)!['max'] ? mesError.get(input.name)!['min'] : input.validationMessage
+              return
+            }
+            if (validity.tooShort) {
+              output.textContent = mesError.get(input.name)!['min'] ? mesError.get(input.name)!['min'] : input.validationMessage
+              return
+            }
+            output.textContent = input.validationMessage
+          }
+        })
+      })
     }
   };
 }
