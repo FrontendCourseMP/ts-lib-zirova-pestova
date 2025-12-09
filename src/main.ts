@@ -1,4 +1,6 @@
 function form(element: HTMLFormElement) {
+  const mesError: Map<string, Record<string, string>>  = new Map()
+
   const inputs = element.querySelectorAll("input");
   for (const input of inputs) {
     if (!input.labels || input.labels.length === 0) {
@@ -7,16 +9,21 @@ function form(element: HTMLFormElement) {
     if (!input.name) {
       throw new Error("У инпута нет имени");
     }
+    const atributeAria = input.getAttribute('aria-describedby')
+    if (!atributeAria) {
+      throw new Error('Отсутствует поле ввода с атрибутом aria-describedby')
+    } 
+    const output = element.querySelector(`#${atributeAria}`)
+    if (!output) {
+      throw new Error('Нет output')
+    }
   }
   
   if (inputs.length === 0) {
     throw new Error("В форме нет инпутов");
   }
   
-  const ariaElements = element.querySelectorAll("[aria-live]");
-  if (ariaElements.length !== inputs.length) {
-    throw new Error("Нет поля для вывода ошибки");
-  }
+
 
   return {
     field(fieldName: string) {
@@ -25,84 +32,68 @@ function form(element: HTMLFormElement) {
         throw new Error(`Поле ${fieldName} не найдено`);
       }
 
-      const validationRules: Array<(value: string | number | string[]) => string | null> = [];
-      const errors: string[] = [];
+      mesError.set(fieldName, {})
 
-      const runValidation = (value: string | number | string[]) => {
-        errors.length = 0;
-        for (const rule of validationRules) {
-          const error = rule(value);
-          if (error) {
-            errors.push(error);
+      const methods = {
+        min(message: string) {
+          if (field.type === 'number' || field.type === 'range') {
+            if (field.min === '') {
+              throw new Error('Отсутствует атрибут min')
+            }
+          } else {
+            if (field.minLength === -1) {
+              throw new Error('Отсутствует атрибут min')
+            }
           }
-        }
-        return errors.length === 0;
-      };
-
-      return {
-        string() {
-          const chainable = {
-            min(length: number, message?: string) {
-              validationRules.push((value: string | number | string[]) => 
-                typeof value === 'string' && value.length < length ? message || `Минимальная длина ${length} символов` : null);
-              return chainable;
-            },
-            max(length: number, message?: string) {
-              validationRules.push((value: string | number | string[]) =>
-                typeof value === 'string' && value.length > length ? message || `Максимальная длина ${length} символов` : null);
-              return chainable;
-            },
-            required(message?: string) {
-              validationRules.push((value: string | number | string[]) =>
-                typeof value === 'string' && value.trim() === '' ? message || 'Поле обязательно для заполнения' : null);
-              return chainable;
-            },
-            isValid: () => runValidation(field.value),
-            errors: () => errors,
-          };
-          return chainable;
+          const fieldErrors = mesError.get(fieldName)
+          if (fieldErrors) {
+            fieldErrors['min'] = message
+            mesError.set(fieldName, fieldErrors)
+          }
+          
+          return methods
         },
+        max(message: string) {
+          if (field.type === 'number' || field.type === 'range') {
+            if (field.max === '') {
+              throw new Error('Отсутствует атрибут max')
+            }
+          } else {
+            if (field.maxLength === -1) {
+              throw new Error('Отсутствует атрибут max')
+            }
+          }
+          const fieldErrors = mesError.get(fieldName)
+          if (fieldErrors) {
+            fieldErrors['max'] = message
+            mesError.set(fieldName, fieldErrors)
+          }
 
+          return methods
+        },
+        string() {
+          if (field.type !== 'text') {
+            throw new Error('В поле должен быть текст')
+          }
+          field.setAttribute('pattern', '[a-zA-Zа-яА-Я]')
+          return methods
+        },
         number() {
-          const chainable = {
-            min(minValue: number, message?: string) {
-              validationRules.push((value: string | number | string[]) => {
-                const num = typeof value === 'number' ? value : NaN;
-                return isNaN(num) || num < minValue ? message || `Значение должно быть не менее ${minValue}` : null;
-              });
-              return chainable;
-            },
-            max(maxValue: number, message?: string) {
-              validationRules.push((value: string | number | string[]) => {
-                const num = typeof value === 'number' ? value : NaN;
-                return isNaN(num) || num > maxValue ? message || `Значение должно быть не более ${maxValue}` : null;
-              });
-              return chainable;
-            },
-            required(message?: string) {
-              validationRules.push((value: string | number | string[]) => {
-                const num = typeof value === 'number' ? value : NaN;
-                return isNaN(num) ? message || 'Поле обязательно для заполнения' : null;
-              });
-              return chainable;
-            },
-            integer(message?: string) {
-              validationRules.push((value: string | number | string[]) => {
-                const num = typeof value === 'number' ? value : NaN;
-                return isNaN(num) || !Number.isInteger(num) ? message || 'Значение должно быть целым числом' : null;
-              });
-              return chainable;
-            },
-            isValid: () => runValidation(field.value),
-            errors: () => errors,
-          };
-          return chainable;
-        }
+          if (field.type !== 'number' && field.type !== 'text') {
+            throw new Error(`Поле ${fieldName} не соответствует вызванному методу number`)
+          }
+          if (field.type === 'text') {
+            field.setAttribute('pattern', '[0-9]+')
+          }
+          return methods
+        },
       }
+
+      return methods
     },
 
-    validate(): boolean {
-      return true;
+    validate(){
+      
     }
   };
 }
