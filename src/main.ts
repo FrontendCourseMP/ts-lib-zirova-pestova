@@ -27,6 +27,7 @@ function form(element: HTMLFormElement) {
 
   return {
     field(fieldName: string) {
+      
       const field = element.querySelector(`[name="${fieldName}"]`) as HTMLInputElement;
       if (!field) {
         throw new Error(`Поле ${fieldName} не найдено`);
@@ -120,12 +121,17 @@ function form(element: HTMLFormElement) {
             }
             if (validity.tooShort) {
               output.textContent = mesError.get(input.name)!['min'] ? mesError.get(input.name)!['min'] : input.validationMessage
-              return
             }
-            output.textContent = input.validationMessage
           }
+          element.reset()
         })
       })
     }
   };
 }
+
+const inp = document.querySelector('form') as HTMLFormElement
+const validator = form(inp)
+validator.field('name').string()
+validator.field('age').number()
+validator.validate()

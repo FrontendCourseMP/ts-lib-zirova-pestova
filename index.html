@@ -9,9 +9,9 @@
     <main>
       <section>
         <form novalidate>
-          <label>Имя <input type="text" name="name" required /></label>
-          <label>Возраст <input type="number" name="age" min="1" max="100" required/></label>
-          <p role="alert" aria-live="assertive"></p>
+          <label>Имя <input type="text" name="name" aria-describedby="error-massage" required /></label>
+          <label>Возраст <input type="text" name="age" min="1" max="100" aria-describedby="error-massage"/></label>
+          <p id='error-massage' role="alert" aria-live="assertive" ></p>
           <button type="submit">Отправить</button>
         </form>
       </section>
