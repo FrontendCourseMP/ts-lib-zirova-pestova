@@ -9,9 +9,32 @@
     <main>
       <section>
         <form novalidate>
-          <label>Имя <input type="text" name="name" aria-describedby="error-massage" required /></label>
-          <label>Возраст <input type="text" name="age" min="1" max="100" aria-describedby="error-massage"/></label>
-          <p id='error-massage' role="alert" aria-live="assertive" ></p>
+          <label>
+            Имя 
+            <input 
+              type="text" 
+              name="name" 
+              aria-describedby="error-name" 
+              minlength="2"
+              maxlength="50"
+              required 
+            />
+          </label>
+          <p id="error-name" role="alert" aria-live="assertive"></p>
+          
+          <label>
+            Возраст 
+            <input 
+              type="number" 
+              name="age" 
+              min="1" 
+              max="100" 
+              aria-describedby="error-age"
+              required
+            />
+          </label>
+          <p id="error-age" role="alert" aria-live="assertive"></p>
+          
           <button type="submit">Отправить</button>
         </form>
       </section>
