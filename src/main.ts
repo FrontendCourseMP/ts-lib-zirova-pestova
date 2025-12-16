@@ -1,8 +1,15 @@
 function form(element: HTMLFormElement) {
-  const mesError: Map<string, Record<string, string>> = new Map();
+  if (!element) {
+    throw new Error("Форма не передана");
+  }
 
+  const mesError: Map<string, Record<string, string>> = new Map();
   const inputs = element.querySelectorAll("input");
-  
+
+  if (inputs.length === 0) {
+    throw new Error("В форме нет инпутов");
+  }
+
   for (const input of inputs) {
     if (!input.labels || input.labels.length === 0) {
       throw new Error("У поля нет своего лейбла");
@@ -10,23 +17,24 @@ function form(element: HTMLFormElement) {
     if (!input.name) {
       throw new Error("У инпута нет имени");
     }
-    const atributeAria = input.getAttribute('aria-describedby');
+
+    const atributeAria = input.getAttribute("aria-describedby");
     if (!atributeAria) {
-      throw new Error('Отсутствует поле ввода с атрибутом aria-describedby');
+      throw new Error("Отсутствует поле ввода с атрибутом aria-describedby");
     }
+
     const output = element.querySelector(`#${atributeAria}`);
     if (!output) {
-      throw new Error('Нет output');
+      throw new Error("Нет output");
     }
-  }
-
-  if (inputs.length === 0) {
-    throw new Error("В форме нет инпутов");
   }
 
   return {
     field(fieldName: string) {
-      const field = element.querySelector(`[name="${fieldName}"]`) as HTMLInputElement;
+      const field = element.querySelector(
+        `[name="${fieldName}"]`
+      ) as HTMLInputElement;
+
       if (!field) {
         throw new Error(`Поле ${fieldName} не найдено`);
       }
@@ -37,56 +45,25 @@ function form(element: HTMLFormElement) {
 
       const methods = {
         min(message: string) {
-          if (field.type === 'number' || field.type === 'range') {
-            if (field.min === '') {
-              throw new Error('Отсутствует атрибут min');
-            }
-          } else {
-            if (!field.hasAttribute('minlength')) {
-              throw new Error('Отсутствует атрибут minlength');
-            }
-          }
-          const fieldErrors = mesError.get(fieldName);
-          if (fieldErrors) {
-            fieldErrors['min'] = message;
-            mesError.set(fieldName, fieldErrors);
-          }
+          mesError.get(fieldName)!.min = message;
           return methods;
         },
-        
+
         max(message: string) {
-          if (field.type === 'number' || field.type === 'range') {
-            if (field.max === '') {
-              throw new Error('Отсутствует атрибут max');
-            }
-          } else {
-            if (!field.hasAttribute('maxlength')) {
-              throw new Error('Отсутствует атрибут maxlength');
-            }
-          }
-          const fieldErrors = mesError.get(fieldName);
-          if (fieldErrors) {
-            fieldErrors['max'] = message;
-            mesError.set(fieldName, fieldErrors);
-          }
+          mesError.get(fieldName)!.max = message;
           return methods;
         },
-        
+
         string() {
-          if (field.type !== 'text') {
-            throw new Error('В поле должен быть текст');
+          if (field.type !== "text") {
+            throw new Error("В поле должен быть текст");
           }
-          field.setAttribute('pattern', '[a-zA-Zа-яА-Я]+');
+          field.setAttribute("pattern", "[a-zA-Zа-яА-Я]+");
           return methods;
         },
-        
+
         number() {
-          if (field.type !== 'number' && field.type !== 'text') {
-            throw new Error(`Поле ${fieldName} не соответствует вызванному методу number`);
-          }
-          if (field.type === 'text') {
-            field.setAttribute('pattern', '[0-9]+');
-          }
+          field.setAttribute("pattern", "[0-9]+");
           return methods;
         },
       };
@@ -95,55 +72,40 @@ function form(element: HTMLFormElement) {
     },
 
     validate() {
-      element.addEventListener('submit', (event) => {
+      element.addEventListener("submit", (event) => {
         event.preventDefault();
-        
+
         let hasErrors = false;
-        
+
         inputs.forEach((input) => {
-          const atributeAria = input.getAttribute('aria-describedby');
-          if (!atributeAria) {
-            throw new Error('Отсутствует поле ввода с атрибутом aria-describedby');
-          }
-          
-          const output = element.querySelector(`#${atributeAria}`) as HTMLElement;
-          if (!output) {
-            throw new Error('Нет output');
-          }
+          const aria = input.getAttribute("aria-describedby")!;
+          const output = element.querySelector(`#${aria}`)!;
+          output.textContent = "";
 
-          // Очищаем предыдущие ошибки
-          output.textContent = '';
-
-          const validity = input.validity;
-          const errors = mesError.get(input.name);
-
-          if (!validity.valid) {
+          if (!input.checkValidity()) {
             hasErrors = true;
-            
-            if (validity.rangeOverflow || validity.tooLong) {
-              output.textContent = errors?.['max'] || input.validationMessage;
-            } else if (validity.rangeUnderflow || validity.tooShort) {
-              output.textContent = errors?.['min'] || input.validationMessage;
-            } else if (validity.patternMismatch) {
-              output.textContent = 'Неверный формат данных';
-            } else if (validity.valueMissing) {
-              output.textContent = 'Поле обязательно для заполнения';
-            } else {
-              output.textContent = input.validationMessage;
-            }
+            output.textContent = "Ошибка";
+            input.setAttribute("aria-invalid", "true");
+          } else {
+            input.removeAttribute("aria-invalid");
           }
         });
 
         if (!hasErrors) {
-          console.log('Форма валидна!');
           element.reset();
         }
       });
-    }
+    },
   };
 }
-const inp = document.querySelector('form') as HTMLFormElement;
-const validator = form(inp);
-validator.field('name').string().min('Имя слишком короткое').max('Имя слишком длинное');
-validator.field('age').number().min('Возраст должен быть больше 0').max('Возраст не может быть больше 100');
-validator.validate();
+
+const inp = document.querySelector("form");
+
+if (inp) {
+  const validator = form(inp as HTMLFormElement);
+  validator.field("name").string().min("Имя короткое").max("Имя длинное");
+  validator.field("age").number().min("Возраст мал").max("Возраст велик");
+  validator.validate();
+}
+
+export default form;
